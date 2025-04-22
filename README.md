@@ -1,4 +1,4 @@
-
+<!-- Refer to GOF (https://github.com/autonomousvision/gaussian-opacity-fields) -->
 
 
 <div align="center">
