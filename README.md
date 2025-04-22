@@ -20,6 +20,7 @@ The code is tested under Python 3.7.13, CUDA 11.3, and PyTorch 1.12.1 .
 git clone https://github.com/SilenKZYoung/IMLS-Splatting.git
 cd IMLS-Splatting
 conda env create --file environment.yml
+conda activate imls_splatting
 ```
 
 ## Dataset
