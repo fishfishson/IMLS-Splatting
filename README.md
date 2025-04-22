@@ -19,7 +19,7 @@ conda env create --file environment.yml
 ```
 
 ## Dataset
-Please download the NeRF-synthetic dataset from [here](https://drive.google.com/drive/folders/1cK3UDIJqKAAm7zyrxRYVFJ0BRMgrwhh4) and preprocessed DTU dataset by 2DGS from [here]（https://drive.google.com/drive/folders/1SJFgt8qhQomHX55Q4xSvYE2C6-8tFll9).
+Please download the NeRF-synthetic dataset from [here](https://drive.google.com/drive/folders/1cK3UDIJqKAAm7zyrxRYVFJ0BRMgrwhh4) and preprocessed DTU dataset by 2DGS from [here](https://drive.google.com/drive/folders/1SJFgt8qhQomHX55Q4xSvYE2C6-8tFll9).
 
 ## Launch
 Run 3DGS initialization
