@@ -42,6 +42,9 @@ def entropy_loss(opacity):
     entropy_loss = -(pout*torch.log(pout) + (1-pout)*torch.log(1-pout)).mean()
     return entropy_loss
 
+def scaling_loss(scaling):
+    return scaling.max(dim=-1).values.mean()
+
 def precompute_normals(train_cameras, gaussians, pipe, bg):
     ori_convert_SHs = copy.deepcopy(pipe.convert_SHs_python)
     
@@ -158,6 +161,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         Ll1 = l1_loss(image, gt_image)
         loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image))
         loss +=  opt.lambda_entropy * entropy_loss(gaussians.get_opacity)
+        loss +=  opt.lambda_scaling * scaling_loss(gaussians.get_scaling)
         loss.backward()
 
         iter_end.record()

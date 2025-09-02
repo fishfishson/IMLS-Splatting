@@ -10,6 +10,7 @@ from plyfile import PlyData, PlyElement
 
 from utils.sh_utils import SH2RGB
 from utils.graphics_utils import getWorld2View2, focal2fov, fov2focal
+from utils.easy_utils import read_camera_new
 from scene.gaussian_model import BasicPointCloud
 from scene.colmap_loader import read_extrinsics_text, read_intrinsics_text, qvec2rotmat, \
     read_extrinsics_binary, read_intrinsics_binary, read_points3D_binary, read_points3D_text
@@ -24,6 +25,20 @@ class CameraInfo(NamedTuple):
     image: np.array
     image_path: str
     image_name: str
+    width: int
+    height: int
+
+class CameraInfoEasy(NamedTuple):
+    name: str
+    R: np.array
+    T: np.array
+    K: np.array
+    image: np.array
+    image_path: str
+    image_name: str
+    mask: np.array
+    mask_path: str
+    mask_name: str
     width: int
     height: int
 
@@ -120,6 +135,84 @@ def storePly(path, xyz, rgb):
     vertex_element = PlyElement.describe(elements, 'vertex')
     ply_data = PlyData([vertex_element])
     ply_data.write(path)
+
+def readCamerasFromEasyMocap(path, white_background, eval):
+    cameras = read_camera_new(path)
+    cam_infos = []
+
+    for cam_name in cameras.keys():
+        K = cameras[cam_name]["K"]
+        R = np.transpose(cameras[cam_name]["R"])
+        T = cameras[cam_name]["T"].reshape(3,)
+
+        # get the world-to-camera transform and set R, T
+        # w2c = np.linalg.inv(c2w)
+        # R = np.transpose(w2c[:3,:3])  # R is stored transposed due to 'glm' in CUDA code
+        # T = w2c[:3, 3]
+
+        image_path = os.path.join(path, 'images', cam_name, '000000.jpg')
+        image_name = Path(cam_name).stem
+        image = Image.open(image_path)
+        im_data = np.array(image.convert("RGB"))
+        norm_data = im_data / 255.0
+        arr = norm_data
+        image = Image.fromarray(np.array(arr*255.0, dtype=np.byte), "RGB")
+
+        mask_path = os.path.join(path, 'masks', cam_name, '000000.png')
+        mask_name = Path(mask_path).stem
+        mask = Image.open(mask_path)
+        mask_data = np.array(mask.convert("L"))
+        norm_data = mask_data / 255.0
+        arr = norm_data
+        mask = Image.fromarray(np.array(arr*255.0, dtype=np.byte), "L")
+
+        bg = np.array([1,1,1]) if white_background else np.array([0, 0, 0])
+
+        cam_infos.append(CameraInfoEasy(
+            name=cam_name, R=R, T=T, K=K, 
+            image=image, image_path=image_path, image_name=image_name, 
+            mask=mask, mask_path=mask_path, mask_name=mask_name, 
+            width=image.size[0], height=image.size[1]))
+
+    return cam_infos
+
+def readEasymocapSceneInfo(path, white_background, eval):
+    print("Reading Training Transforms")
+    train_cam_infos = readCamerasFromEasyMocap(path, white_background, eval)
+    print("Reading Test Transforms")
+    test_cam_infos = readCamerasFromEasyMocap(path, white_background, eval)[:1]
+    
+    if not eval:
+        # train_cam_infos.extend(test_cam_infos)
+        test_cam_infos = []
+
+    nerf_normalization = getNerfppNorm(train_cam_infos)
+
+    ply_path = os.path.join(path, "points3d.ply")
+    if not os.path.exists(ply_path):
+        # Since this data set has no colmap data, we start with random points
+        num_pts = 10000
+        print(f"Generating random point cloud ({num_pts})...")
+        
+        xyz = np.random.random((num_pts, 3)) - 0.5
+        norms = np.linalg.norm(xyz, axis=1)
+        xyz   = xyz / norms[:, np.newaxis] * 1.3
+
+        shs = np.random.random((num_pts, 3)) / 255.0
+        pcd = BasicPointCloud(points=xyz, colors=SH2RGB(shs), normals=np.zeros((num_pts, 3)))
+
+        storePly(ply_path, xyz, SH2RGB(shs) * 255)
+    try:
+        pcd = fetchPly(ply_path)
+    except:
+        pcd = None
+
+    scene_info = SceneInfo(point_cloud=pcd,
+                           train_cameras=train_cam_infos,
+                           test_cameras=test_cam_infos,
+                           nerf_normalization=nerf_normalization,
+                           ply_path=ply_path)
+    return scene_info    
 
 def readColmapSceneInfo(path, images, eval, llffhold=8):
     try:
@@ -245,6 +338,7 @@ def readNerfSyntheticInfo(path, white_background, eval, extension=".png"):
     return scene_info
 
 sceneLoadTypeCallbacks = {
+    "Easymocap": readEasymocapSceneInfo,
     "Colmap": readColmapSceneInfo,
     "Blender" : readNerfSyntheticInfo
 }

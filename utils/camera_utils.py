@@ -2,6 +2,7 @@ from scene.cameras import Camera
 import numpy as np
 from utils.general_utils import PILtoTorch
 from utils.graphics_utils import fov2focal
+from scene.dataset_readers import CameraInfoEasy, CameraInfo
 
 WARNED = False
 
@@ -11,7 +12,9 @@ def loadCam(args, id, cam_info, resolution_scale):
     if args.resolution in [1, 2, 4, 8]:
         # resolution = round(orig_w/(resolution_scale * args.resolution)), round(orig_h/(resolution_scale * args.resolution))
         resolution = round(orig_w/(resolution_scale * args.resolution)/8)*8, round(orig_h/(resolution_scale * args.resolution)/8)*8
+        scale = resolution_scale * args.resolution
     else:  # should be a type that converts to float
+        raise NotImplementedError("Resolution scale not implemented for this resolution")
         if args.resolution == -1:
             if orig_w > 1600:
                 global WARNED
@@ -29,17 +32,36 @@ def loadCam(args, id, cam_info, resolution_scale):
         resolution = (int(orig_w / scale), int(orig_h / scale))
 
     resized_image_rgb = PILtoTorch(cam_info.image, resolution)
+    if hasattr(cam_info, 'mask'):
+        resized_image_mask = PILtoTorch(cam_info.mask, resolution)
+    else:
+        resized_image_mask = None
 
     gt_image = resized_image_rgb[:3, ...]
-    loaded_mask = None
-
-    if resized_image_rgb.shape[0] == 4:
-        loaded_mask = resized_image_rgb[3:4, ...]
-
-    return Camera(colmap_id=cam_info.uid, R=cam_info.R, T=cam_info.T, 
-                  FoVx=cam_info.FovX, FoVy=cam_info.FovY, 
-                  image=gt_image, gt_alpha_mask=loaded_mask,
-                  image_name=cam_info.image_name, uid=id, data_device=args.data_device)
+    if resized_image_mask is not None:
+        loaded_mask = resized_image_mask[:1, ...]
+    else:
+        loaded_mask = None
+    
+    if isinstance(cam_info, CameraInfoEasy):
+        cx = cam_info.K[0, 2] / scale
+        cy = cam_info.K[1, 2] / scale
+        fl_x = cam_info.K[0, 0] / scale
+        fl_y = cam_info.K[1, 1] / scale
+        return Camera(
+            colmap_id=cam_info.name, R=cam_info.R, T=cam_info.T,
+            FoVx=-1.0, FoVy=-1.0,
+            image=gt_image, gt_alpha_mask=loaded_mask,
+            image_name=cam_info.image_name, uid=id, data_device=args.data_device,
+            cx=cx, cy=cy, fl_x=fl_x, fl_y=fl_y
+        )
+    elif isinstance(cam_info, CameraInfo):
+        return Camera(
+            colmap_id=cam_info.uid, R=cam_info.R, T=cam_info.T, 
+            FoVx=cam_info.FovX, FoVy=cam_info.FovY, 
+            image=gt_image, gt_alpha_mask=loaded_mask,
+            image_name=cam_info.image_name, uid=id, data_device=args.data_device
+        )
 
 def cameraList_from_camInfos(cam_infos, resolution_scale, args):
     camera_list = []

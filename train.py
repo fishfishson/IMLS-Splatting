@@ -12,7 +12,7 @@ from utils.general_utils import safe_state
 from argparse import ArgumentParser, Namespace
 from arguments import ModelParams, PipelineParams, OptimizationParams
 from utils.general_utils import inverse_sigmoid
-from refer import rasterize_set, eval_cd_dtu, eval_psnr_nerf, eval_cd_nerf
+# from refer import rasterize_set, eval_cd_dtu, eval_psnr_nerf, eval_cd_nerf
 
 torch.set_num_threads(10)
 warnings.filterwarnings("ignore")
@@ -122,7 +122,7 @@ def training(dataset, opt, saving_iterations, checkpoint_ply, expname):
                 opt_mesh = imlsplat(gaussians, scene.getTrainCameras()[0], bg, resample=True, cameras=scene.getTrainCameras())
                 
             # record
-            if (iteration % 500 == 0):
+            if (iteration % 2000 == 0) or (iteration == opt.iterations):
                 meshdict = imlsplat(gaussians, scene.getTrainCameras()[0], bg, record='record/'+str(iteration), cameras=scene.getTrainCameras())
 
             if iteration < opt.iterations:
