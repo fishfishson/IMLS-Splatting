@@ -2,11 +2,14 @@ import os
 import sys
 import json
 import numpy as np
+from tqdm import tqdm
 
 from PIL import Image
 from typing import NamedTuple
 from pathlib import Path
-from plyfile import PlyData, PlyElement
+# from plyfile import PlyData, PlyElement
+import trimesh
+from trimesh.sample import sample_surface
 
 from utils.sh_utils import SH2RGB
 from utils.graphics_utils import getWorld2View2, focal2fov, fov2focal
@@ -140,7 +143,7 @@ def readCamerasFromEasyMocap(path, white_background, eval):
     cameras = read_camera_new(path)
     cam_infos = []
 
-    for cam_name in cameras.keys():
+    for cam_name in tqdm(cameras.keys()):
         K = cameras[cam_name]["K"]
         R = np.transpose(cameras[cam_name]["R"])
         T = cameras[cam_name]["T"].reshape(3,)
@@ -193,7 +196,7 @@ def readEasymocapSceneInfo(path, white_background, eval):
         # Since this data set has no colmap data, we start with random points
         num_pts = 10000
         print(f"Generating random point cloud ({num_pts})...")
-        
+        raise NotImplementedError("Random point cloud generation is not implemented for Easymocap")
         xyz = np.random.random((num_pts, 3)) - 0.5
         norms = np.linalg.norm(xyz, axis=1)
         xyz   = xyz / norms[:, np.newaxis] * 2.0
@@ -203,9 +206,9 @@ def readEasymocapSceneInfo(path, white_background, eval):
 
         storePly(ply_path, xyz, SH2RGB(shs) * 255)
     else:
-        plydata = PlyData.read(ply_path)
-        vertices = plydata['vertex']
-        positions = np.vstack([vertices['x'], vertices['y'], vertices['z']]).T
+        mesh = trimesh.load(ply_path, process=False)
+        vertices, _ = sample_surface(mesh, 30000)
+        positions = vertices[:, :3]
         shs = np.random.random((positions.shape[0], 3)) / 255.0
         normals = np.zeros((positions.shape[0], 3))
         pcd = BasicPointCloud(points=positions, colors=SH2RGB(shs), normals=normals)

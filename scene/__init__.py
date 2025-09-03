@@ -71,8 +71,10 @@ class Scene:
             self.gaussians.create_from_ply(checkpoint_path, self.cameras_extent)
         elif checkpoint_ply is not None:
             if 'gaussian-splatting' in checkpoint_ply:
+                print(f"Loading 3DGS checkpoint from {checkpoint_ply}")
                 self.gaussians.create_from_3dgs(checkpoint_ply, self.cameras_extent)
             else:
+                print(f"Loading ply checkpoint from {checkpoint_ply}")
                 self.gaussians.create_from_ply(checkpoint_ply, self.cameras_extent)
         else:
             self.gaussians.create_from_pcd(scene_info.point_cloud, self.cameras_extent)

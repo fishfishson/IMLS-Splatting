@@ -99,6 +99,7 @@ def training(dataset, opt, saving_iterations, checkpoint_ply, expname):
             if (iteration <= opt.upsample_until) and (iteration > opt.upsample_from) and ((iteration - opt.upsample_from) % opt.upsample_interval == 0):
                 opt.grid_resolution = opt.grid_resolution + 64
                 imlsplat = imlsplatting(opt.__dict__)
+                print('upsample at iteration ', str(iteration))
                 print('upsample to ', str(opt.grid_resolution))
 
                 gaussians.scale_range = True
@@ -119,10 +120,12 @@ def training(dataset, opt, saving_iterations, checkpoint_ply, expname):
 
             # resample
             if (not upsample) and (iteration <= opt.resample_until) and (iteration > opt.resample_from) and (iteration % opt.resample_interval == 0):
+                print('resample at iteration ', str(iteration))
                 opt_mesh = imlsplat(gaussians, scene.getTrainCameras()[0], bg, resample=True, cameras=scene.getTrainCameras())
                 
             # record
-            if (iteration % 2000 == 0) or (iteration == opt.iterations):
+            if (iteration % 5000 == 0) or (iteration == opt.iterations):
+                print('record at iteration ', str(iteration))
                 meshdict = imlsplat(gaussians, scene.getTrainCameras()[0], bg, record='record/'+str(iteration), cameras=scene.getTrainCameras())
 
             if iteration < opt.iterations:

@@ -310,6 +310,41 @@ class imlsplatting():
                 mesh = trimesh.Trimesh(vertices = mesh_verts, faces = mesh_faces, vertex_colors= mesh_normal)          
                 mesh.export(os.path.join(save_path, save_name + '_mesh_nums.ply'))
 
+    def extract(self, pc, save_path, grid_resolution=None):
+        means3D  = pc.get_xyz
+        normals  = pc.get_normal
+        scales   = pc.get_scaling
+        features = pc.get_feature
+        means3D, scales = self.normalize(means3D, scales, pc.axis_center)
+        meshdict = {'means3D': means3D, 'normals': normals, 'scales': scales, 'features': features}
+
+        if grid_resolution is None:
+            grid_resolution = self.opt['grid_resolution']
+        out_sums, out_sdfs, out_feat = splatter.apply(means3D, normals, scales, features, grid_resolution)
+        meshdict['out_sums']  = out_sums[0]
+        meshdict['out_sdfs']  = out_sdfs[0]
+        meshdict['out_feat']  = out_feat.permute(1,2,3,0)
+
+        meshdict = self.marchingcube(meshdict, isovalue=0)
+        meshdict = auto_normals(meshdict)
+
+        meshdict['mesh_verts'] = self.denormlize(meshdict['mesh_verts'], pc.axis_center)
+        meshdict['mesh_attri'] = torch.cat([meshdict['mesh_feats'], meshdict['mesh_verts'], meshdict['mesh_v_nrm']], dim=-1).contiguous()
+
+        point_scales = pc.get_scaling
+        scale_mean   = point_scales.mean().item()
+        scale_max_thred = point_scales.max().item()
+        point_scales = point_scales / scale_max_thred
+
+        mesh_verts = meshdict['mesh_verts'].detach().cpu().numpy()
+        mesh_faces = meshdict['mesh_faces'].detach().cpu().numpy()
+
+        mesh_normal = (F.normalize(meshdict['mesh_v_nrm'], dim=-1) + 1) * 0.5
+        mesh_normal = (mesh_normal * 255).detach().cpu().numpy()
+
+        mesh = trimesh.Trimesh(vertices = mesh_verts, faces = mesh_faces, vertex_colors= mesh_normal)          
+        mesh.export(save_path)
+
     def __call__(self, pc, camera, bg_color, record=None, cameras=None, resample=False, refer=False, get_visiable=False, to_grid=False):
         means3D  = pc.get_xyz
         normals  = pc.get_normal
