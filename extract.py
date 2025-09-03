@@ -2,6 +2,7 @@ import os
 import argparse
 import numpy as np
 import trimesh
+from trimesh.remesh import subdivide_loop
 import json
 import torch
 from scene import Scene, GaussianModel
@@ -30,3 +31,13 @@ if __name__ == "__main__":
     
     with torch.no_grad():
         meshdict = imlsplat.extract(gaussians, os.path.join(args.save_path), args.grid_resolution)
+    
+    mesh = trimesh.load(args.save_path)
+    print(f"Mesh vertices shape: {mesh.vertices.shape}")
+    if mesh.vertices.shape[0] < 100000:
+        print("Subdividing mesh")
+        nv, nf = subdivide_loop(mesh.vertices, mesh.faces)
+        mesh = trimesh.Trimesh(vertices=nv, faces=nf)
+        mesh.export(os.path.join(os.path.dirname(args.save_path), "pred-high.ply"))
+    else:
+        mesh.export(os.path.join(os.path.dirname(args.save_path), "pred-high.ply"))

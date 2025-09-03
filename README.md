@@ -1,3 +1,14 @@
+## Usage
+```python
+# for body
+./scripts/test_body.sh 0103 /mnt/CacheSSD/yuzhiyuan/data/thuman2.1/results/thuman2.1_mv/0103 /mnt/CacheSSD/yuzhiyuan/data/thuman2.1/results/thuman2.1_mv/0103/gt.ply
+# for head
+ ./scripts/test_head.sh 0103_head /mnt/CacheSSD/yuzhiyuan/data/thuman2.1/results/thuman2.1_head_mv/0103 /mnt/CacheSSD/yuzhiyuan/data/thuman2.1/results/thuman2.1_head_mv/0103/gt.ply
+# animation
+python3 animate.py --mesh ./output/0103 --smplx_path ./data/thuman2.1_smplx --pose_path ./data/pose/CMU/10/10_05_poses.npz
+```
+
+
 ## Installation
 The code is tested under Python 3.7.13, CUDA 11.3, and PyTorch 1.12.1 .
 ```

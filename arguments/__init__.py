@@ -55,7 +55,7 @@ class PipelineParams(ParamGroup):
      
 class OptimizationParams(ParamGroup):
     def __init__(self, parser):
-        self.iterations      = 30_000
+        self.iterations      = 20_000
         self.grid_resolution = 64
         self.SSAA            = 1
         self.meshscale       = 2.0
@@ -63,10 +63,10 @@ class OptimizationParams(ParamGroup):
 
         self.upsample_from     = 0
         self.upsample_interval = 4000
-        self.upsample_until    = 17_000
+        self.upsample_until    = 13_000
         self.resample_from     = 2000
         self.resample_interval = 1000
-        self.resample_until    = 19_000
+        self.resample_until    = 15_000
         
         self.position_lr_init       = 0.00005
         self.position_lr_final      = 0.00005

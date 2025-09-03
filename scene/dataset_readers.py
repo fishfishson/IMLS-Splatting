@@ -7,6 +7,7 @@ from PIL import Image
 from typing import NamedTuple
 from pathlib import Path
 from plyfile import PlyData, PlyElement
+from tqdm import tqdm
 
 from utils.sh_utils import SH2RGB
 from utils.graphics_utils import getWorld2View2, focal2fov, fov2focal
@@ -140,7 +141,7 @@ def readCamerasFromEasyMocap(path, white_background, eval):
     cameras = read_camera_new(path)
     cam_infos = []
 
-    for cam_name in cameras.keys():
+    for cam_name in tqdm(cameras.keys()):
         K = cameras[cam_name]["K"]
         R = np.transpose(cameras[cam_name]["R"])
         T = cameras[cam_name]["T"].reshape(3,)

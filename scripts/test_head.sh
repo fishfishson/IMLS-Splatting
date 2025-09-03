@@ -61,26 +61,30 @@ fi
 
 # 运行第二个 train.py
 echo "Running second train.py with expname=$expname, checkpoint=$checkpoint"
-python3 train.py --eval --white_background --SSAA 1 --resolution 1 --expname "$expname" --meshscale 0.5 --start_checkpoint_ply "$checkpoint" -s "$data_path" || { echo "Second train.py failed"; exit 1; }
+python3 train.py --eval --white_background --SSAA 1 --resolution 1 --expname "$expname" --meshscale 1.0 --start_checkpoint_ply "$checkpoint" -s "$data_path" || { echo "Second train.py failed"; exit 1; }
 
-# 检查 eval.py 和输入路径
-if [ ! -f "eval.py" ]; then
-    echo "eval.py not found"
+# 提取网格
+echo "Running extract.py with expname=$expname"
+python3 extract.py --config "./output/$expname/opt.json" --model_path "output/$expname" --save_path "output/$expname/pre    d.ply" --grid_resolution 512 || { echo "extract.py failed"; exit 1; }
+
+# 检查 metric.py 和输入路径
+if [ ! -f "metric.py" ]; then
+    echo "metric.py not found"
     exit 1
 fi
 if [ ! -f "$gt_path" ]; then
     echo "Ground truth path $gt_path does not exist"
     exit 1
 fi
-pred_path="output/$expname/record/20000_mesh_nums.ply"
+pred_path="output/$expname/pred-high.ply"
 if [ ! -f "$pred_path" ]; then
     echo "Predicted mesh $pred_path not found"
     exit 1
 fi
 
-# 运行 eval.py
-echo "Running eval.py with gt_path=$gt_path, pred_path=$pred_path"
-python eval.py --gt_path "$gt_path" --pred_path "$pred_path" || { echo "eval.py failed"; exit 1; }
+# 运行 metric.py
+echo "Running metric.py with gt_path=$gt_path, pred_path=$pred_path"
+python metric.py --gt_path "$gt_path" --pred_path "$pred_path" --mode "head" || { echo "metric.py failed"; exit 1; }
 
 # 计算并输出总耗时
 end_time=$SECONDS
