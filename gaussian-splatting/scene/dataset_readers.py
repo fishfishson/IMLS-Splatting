@@ -3,6 +3,7 @@ import sys
 import json
 import numpy as np
 from tqdm import tqdm
+import cv2
 
 from PIL import Image
 from typing import NamedTuple
@@ -139,11 +140,15 @@ def storePly(path, xyz, rgb):
     ply_data = PlyData([vertex_element])
     ply_data.write(path)
 
-def readCamerasFromEasyMocap(path, white_background, eval):
+def readCamerasFromEasyMocap(path, white_background, eval, test=False):
     cameras = read_camera_new(path)
     cam_infos = []
-
-    for cam_name in tqdm(cameras.keys()):
+    if test:
+        cameras_name = list(cameras.keys())[:1]
+    else:
+        cameras_name = list(cameras.keys())
+        
+    for cam_name in tqdm(cameras_name):
         K = cameras[cam_name]["K"]
         R = np.transpose(cameras[cam_name]["R"])
         T = cameras[cam_name]["T"].reshape(3,)
@@ -155,19 +160,23 @@ def readCamerasFromEasyMocap(path, white_background, eval):
 
         image_path = os.path.join(path, 'images', cam_name, '000000.jpg')
         image_name = Path(cam_name).stem
-        image = Image.open(image_path)
-        im_data = np.array(image.convert("RGB"))
-        norm_data = im_data / 255.0
-        arr = norm_data
-        image = Image.fromarray(np.array(arr*255.0, dtype=np.byte), "RGB")
+        # image = Image.open(image_path)
+        # im_data = np.array(image.convert("RGB"))
+        image = cv2.imread(image_path)
+        im_data = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        height, width = im_data.shape[:2]
+        # norm_data = im_data / 255.0
+        # arr = norm_data
+        # image = Image.fromarray(np.array(arr*255.0, dtype=np.byte), "RGB")
 
         mask_path = os.path.join(path, 'masks', cam_name, '000000.png')
         mask_name = Path(mask_path).stem
-        mask = Image.open(mask_path)
-        mask_data = np.array(mask.convert("L"))
-        norm_data = mask_data / 255.0
-        arr = norm_data
-        mask = Image.fromarray(np.array(arr*255.0, dtype=np.byte), "L")
+        # mask = Image.open(mask_path)
+        # mask_data = np.array(mask.convert("L"))
+        mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+        # norm_data = mask_data / 255.0
+        # arr = norm_data
+        # mask = Image.fromarray(np.array(arr*255.0, dtype=np.byte), "L")
 
         bg = np.array([1,1,1]) if white_background else np.array([0, 0, 0])
 
@@ -175,7 +184,7 @@ def readCamerasFromEasyMocap(path, white_background, eval):
             name=cam_name, R=R, T=T, K=K, 
             image=image, image_path=image_path, image_name=image_name, 
             mask=mask, mask_path=mask_path, mask_name=mask_name, 
-            width=image.size[0], height=image.size[1]))
+            width=width, height=height))
 
     return cam_infos
 
@@ -183,7 +192,7 @@ def readEasymocapSceneInfo(path, white_background, eval):
     print("Reading Training Transforms")
     train_cam_infos = readCamerasFromEasyMocap(path, white_background, eval)
     print("Reading Test Transforms")
-    test_cam_infos = readCamerasFromEasyMocap(path, white_background, eval)[:1]
+    test_cam_infos = readCamerasFromEasyMocap(path, white_background, eval, test=True)
     
     if not eval:
         # train_cam_infos.extend(test_cam_infos)

@@ -65,7 +65,7 @@ python3 train.py --eval --white_background --SSAA 1 --resolution 1 --expname "$e
 
 # 提取网格
 echo "Running extract.py with expname=$expname"
-python3 extract.py --config "./output/$expname/opt.json" --model_path "output/$expname" --save_path "output/$expname/pre    d.ply" --grid_resolution 512 || { echo "extract.py failed"; exit 1; }
+python3 extract.py --config "./output/$expname/opt.json" --model_path "output/$expname" --save_path "output/$expname/pred.ply" --grid_resolution 512 || { echo "extract.py failed"; exit 1; }
 
 # 检查 metric.py 和输入路径
 if [ ! -f "metric.py" ]; then

@@ -1,13 +1,15 @@
 from scene.cameras import Camera
 import numpy as np
 from utils.general_utils import PILtoTorch
+import cv2
+import torch
 from utils.graphics_utils import fov2focal
 from scene.dataset_readers import CameraInfoEasy, CameraInfo
 
 WARNED = False
 
 def loadCam(args, id, cam_info, resolution_scale):
-    orig_w, orig_h = cam_info.image.size
+    orig_w, orig_h = cam_info.image.shape[:2]
 
     if args.resolution in [1, 2, 4, 8]:
         # resolution = round(orig_w/(resolution_scale * args.resolution)), round(orig_h/(resolution_scale * args.resolution))
@@ -31,9 +33,23 @@ def loadCam(args, id, cam_info, resolution_scale):
         scale = float(global_down) * float(resolution_scale)
         resolution = (int(orig_w / scale), int(orig_h / scale))
 
-    resized_image_rgb = PILtoTorch(cam_info.image, resolution)
+    # resized_image_rgb = PILtoTorch(cam_info.image, resolution)
+    resized_image_rgb = cv2.resize(cam_info.image, resolution, interpolation=cv2.INTER_AREA)
+    resized_image_rgb = resized_image_rgb.astype(np.float32) / 255.0
+    resized_image_rgb = torch.from_numpy(resized_image_rgb)
+    if resized_image_rgb.ndim == 3:
+        resized_image_rgb = resized_image_rgb.permute(2, 0, 1)
+    else:
+        resized_image_rgb = resized_image_rgb.unsqueeze(dim=-1).permute(2, 0, 1)
     if hasattr(cam_info, 'mask'):
-        resized_image_mask = PILtoTorch(cam_info.mask, resolution)
+        # resized_image_mask = PILtoTorch(cam_info.mask, resolution)
+        resized_image_mask = cv2.resize(cam_info.mask, resolution, interpolation=cv2.INTER_AREA)
+        resized_image_mask = resized_image_mask.astype(np.float32) / 255.0
+        resized_image_mask = torch.from_numpy(resized_image_mask)
+        if resized_image_mask.ndim == 3:
+            resized_image_mask = resized_image_mask.permute(2, 0, 1)
+        else:
+            resized_image_mask = resized_image_mask.unsqueeze(dim=-1).permute(2, 0, 1)
     else:
         resized_image_mask = None
 

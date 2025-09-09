@@ -16,13 +16,14 @@ if __name__ == "__main__":
     parser.add_argument("--mesh_path", type=str, default="./output/0103")
     parser.add_argument("--smplx_path", type=str, default="./data/thuman2.1_smplx")
     parser.add_argument("--pose_path", type=str, default="./data/pose/CMU/10/10_05_poses.npz")
+    parser.add_argument("--interval", type=int, default=10)
     args = parser.parse_args()
 
     pose_file = np.load(args.pose_path)
     smpl_data = {
-        'global_orient': pose_file['poses'][::10, :3],
-        'transl': pose_file['trans'][::10],
-        'body_pose': pose_file['poses'][::10, 3: 22 * 3],
+        'global_orient': pose_file['poses'][::args.interval, :3],
+        'transl': pose_file['trans'][::args.interval],
+        'body_pose': pose_file['poses'][::args.interval, 3: 22 * 3],
     }
     smpl_data['body_pose'][:, 13 * 3 + 2] -= 0.3
     smpl_data['body_pose'][:, 12 * 3 + 2] += 0.3
